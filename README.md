@@ -36,11 +36,42 @@ Product: "another-uuid"
 ```
 
 ### Initializer Code
-Add the following initializer code to populate the SCHEMA_VERSION constants from the centralized YAML file. Create a new file config/initializers/load_schema_versions.rb and add the following lines:
+Add the following initializer code to populate the SCHEMA_VERSION constants from the centralized YAML file. Create a new file `config/initializers/mongoid_document_extension.rb` and add the following lines:
 
 ```ruby
-# config/initializers/load_schema_versions.rb
-Mongoid::Document.load_schema_versions_from_yaml(Rails.root.join("config", "centralized_schema_versions.yml"))
+# config/initializers/mongoid_document_extension.rb
+module Mongoid
+  module Document
+    # Class method to load schema versions from YAML file and set them as class constants
+    def self.load_schema_versions_from_yaml(file_path)
+      centralized_schema_versions = YAML.load_file(file_path)
+      centralized_schema_versions.each do |klass_name, uuid|
+        begin
+          klass = klass_name.constantize
+          klass.const_set("SCHEMA_VERSION", uuid) unless klass.const_defined?("SCHEMA_VERSION")
+        rescue NameError => e
+          puts "Could not find class #{klass_name}"
+        end
+      end
+    end
+
+    def self.included(base)
+      return unless base.is_a?(Class)
+      
+      base.field :schema_version, type: String
+      base.before_create :set_schema_version
+      base.before_update :set_schema_version
+      
+      # Instance method to set the schema_version field
+      base.send(:define_method, :set_schema_version) do
+        schema_version_constant = self.class.const_get("SCHEMA_VERSION", false) # false flag will prevent an error if constant is not defined
+        self.schema_version = schema_version_constant if schema_version_constant
+      end
+    end
+  end
+end
+
+Mongoid::Document.load_schema_versions_from_yaml(Rails.root.join("db", "schema_versions_centralized.yml"))
 ```
 
 ### Update Schema Versions
@@ -78,6 +109,23 @@ Usage:
 ```bash
 rake schema_version:init_centralized_file
 ```
+
+## Tests (RSpec)
+
+Add this to your test suite to validate all the schema is update to date.
+
+```ruby
+# spec/rails_helper.rb
+RSpec.configure do |config|
+
+  config.before(:suite) do
+    if !SchemaVersioningMongoid::RSpecHelper.check_schemas_and_uuids('concerns,history_tracker')
+      puts "\nERROR: Schemas and/or UUIDs are not up-to-date!\n"
+      exit(1)
+    end
+  end
+```
+
 
 ## Contributing
 1. Fork it ( https://github.com/offerzen/schema_versioning_mongoid/fork )
