@@ -1,4 +1,9 @@
-# schema_versioning_mongoid
+# Schema Versioning Pattern for Mongoid
+
+MongoDB recommends the schema versioning pattern to enable 
+downstream consumers of data records understand its contents.
+
+https://www.mongodb.com/blog/post/building-with-patterns-the-schema-versioning-pattern
 
 `schema_versioning_mongoid` is a gem that helps you maintain and version your MongoDB schemas in a Rails application. It allows you to automatically update or insert `SCHEMA_VERSION` constants in your Mongoid models to help track changes.
 
@@ -24,9 +29,9 @@ $ bundle install
 
 ## Usage
 ### Inline Strategy
-(TBA: Explain how to use the inline strategy)
+The inline strategy is available should you want your SCHEMA_VERSION to be a visible constant inside each model for added visibility and awareness. Though, this may be cumbersome for some.
 
-### Centralized Strategy
+### Centralized Strategy (default)
 To use the centralized strategy, you will need to create a YAML file to store the schema versions. This can be placed anywhere in your application, although we recommend storing it in the db or config directory. For example, db/schema_versions_centralized.yml.
 
 Sample YAML Content
@@ -75,7 +80,7 @@ Mongoid::Document.load_schema_versions_from_yaml(Rails.root.join("db", "schema_v
 ```
 
 ### Update Schema Versions
-(TBA: Explain how to update schema versions in either strategy)
+run the rake tasks below, for example: `rake schema_version:run_all reject_patterns='concerns,history_tracker'`
 
 ## Rake Tasks
 
