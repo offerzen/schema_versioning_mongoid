@@ -161,4 +161,53 @@ namespace :schema_version do
       Rake::Task["schema_version:set"].reenable
     end
   end
+
+  desc "Initialize the schema_versions.yml file if it doesn't exist"
+  task :init => :environment do
+    unless File.exist?(SchemaVersioningMongoid::Utilities.schema_file)
+      File.open(SchemaVersioningMongoid::Utilities.schema_file, 'w') do |f|
+        f.write({}.to_yaml)
+      end
+      puts "Initialized empty schema_versions.yml file"
+    else
+      puts "schema_versions.yml file already exists, skipping initialization"
+    end
+  end
+
+  desc "Validate all models against the schema file without modifying them"
+  task :validate_all => :environment do
+    model_files = Dir["#{Rails.root}/app/models/**/*.rb"]
+    model_files.each do |model_file|
+      require model_file
+
+      relative_path = model_file.sub("#{Rails.root}/app/models/", "")
+      full_path, class_name, klass = validate_path_and_class({ relative_path: relative_path })
+
+      next unless klass && klass.included_modules.include?(Mongoid::Document)
+
+      schema_check_result = check_schema(full_path, class_name, klass)
+      
+      if !schema_check_result[:result]
+        puts "Schema for #{class_name} DOES NOT match the schema in #{SchemaVersioningMongoid::Utilities.schema_file}"
+      else
+        puts "Schema for #{class_name} matches the schema in #{SchemaVersioningMongoid::Utilities.schema_file}"
+      end
+    end
+  end
+
+  # desc "Cleanup old schema versions that are no longer needed"
+  # task :cleanup => :environment do
+  #   existing_data = YAML.load_file(SchemaVersioningMongoid::Utilities.schema_file)
+  #   model_files = Dir["#{Rails.root}/app/models/**/*.rb"].map do |path|
+  #     path.sub("#{Rails.root}/app/models/", "").sub(".rb", "").classify
+  #   end
+
+  #   updated_data = existing_data.select { |key, _| model_files.include?(key) }
+
+  #   File.open(SchemaVersioningMongoid::Utilities.schema_file, 'w') do |f|
+  #     f.write(updated_data.to_yaml)
+  #   end
+
+  #   puts "Cleaned up old schema versions"
+  # end
 end
