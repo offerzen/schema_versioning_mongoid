@@ -180,11 +180,11 @@ namespace :"db:mongoid" do
           end
         end
 
-        # if changes[:changed].any?
-        #   changes[:changed].each do |field|
-        #     puts pastel.yellow("  ~ #{field}")
-        #   end
-        # end
+        if changes[:changed].any?
+          changes[:changed].each do |field|
+            puts pastel.yellow("  ~ #{field}")
+          end
+        end
       end
     end
 
@@ -206,8 +206,8 @@ namespace :"db:mongoid" do
       end
     end
 
-    model_name = ENV['MODEL'] || 'AcceptableLocation'
-    execute_comparison(model_name)
+    model_name = ENV['MODEL']
+    model_name ? execute_comparison(model_name) : puts("Please specify a model to visualize using MODEL='Model'")
   end
 
   # desc "Cleanup old schema versions that are no longer needed"

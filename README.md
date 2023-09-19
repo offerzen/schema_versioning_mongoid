@@ -149,10 +149,7 @@ rake db:mongoid:validate_schema_versions
 ### Overview
 The schema version validator and diff tool is a utility that allows developers to compare the current version of a MongoDB model schema with its historical versions. This can be useful for understanding changes, migrations, or potential compatibility issues in the system.
 
-### Installation
 This tool is bundled as a Rake task within your Rails application. Make sure you have updated to the latest version of the application that includes this tool.
-
-### Requirements
 - Ruby on Rails environment
 - MongoDB
 - Access to `db/schema_versions_centralized.yml` and `db/schema_versions.yml` files.
@@ -163,7 +160,7 @@ Run the Rake task using the following command to validate schema versions and di
 ```bash
 rake db:mongoid:validate_schema_versions_with_diff MODEL=YourModelName
 ```
-Replace `YourModelName` with the model name you'd like to validate. If you don't specify a model name, it defaults to 'Users'.
+Replace `YourModelName` with the model name you'd like to visualize.
 
 #### Sample Output
 The output will provide you with a detailed comparison between the current and historical versions of the specified model, formatted similarly to GitHub diffs:
