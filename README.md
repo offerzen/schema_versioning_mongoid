@@ -47,36 +47,53 @@ Add the following initializer code to populate the SCHEMA_VERSION constants from
 # config/initializers/mongoid_document_extension.rb
 module Mongoid
   module Document
-    # Class method to load schema versions from YAML file and set them as class constants
     def self.load_schema_versions_from_yaml(file_path)
-      centralized_schema_versions = YAML.load_file(file_path)
+      centralized_schema_versions = safely_load_yaml(file_path)
+      return unless centralized_schema_versions
+
+      safely_set_constants(centralized_schema_versions)
+    end
+
+    def self.safely_load_yaml(file_path)
+      YAML.load_file(file_path).tap do |result|
+        puts("No Schema Version records at #{file_path}. Skipping...") unless result
+      end
+    rescue Errno::ENOENT, Psych::SyntaxError => e
+      puts("An error occurred while loading YAML from #{file_path}: #{e.message}")
+      nil
+    end
+
+    def self.safely_set_constants(centralized_schema_versions)
       centralized_schema_versions.each do |klass_name, uuid|
         begin
           klass = klass_name.constantize
           klass.const_set("SCHEMA_VERSION", uuid) unless klass.const_defined?("SCHEMA_VERSION")
         rescue NameError => e
-          puts "Could not find class #{klass_name}"
+          puts("Could not find class #{klass_name}: #{e.message}")
         end
       end
     end
 
     def self.included(base)
       return unless base.is_a?(Class)
-      
+
       base.field :schema_version, type: String
       base.before_create :set_schema_version
       base.before_update :set_schema_version
-      
-      # Instance method to set the schema_version field
+
       base.send(:define_method, :set_schema_version) do
-        schema_version_constant = self.class.const_get("SCHEMA_VERSION", false) # false flag will prevent an error if constant is not defined
+        schema_version_constant = self.class.const_get("SCHEMA_VERSION", false) rescue nil
         self.schema_version = schema_version_constant if schema_version_constant
       end
     end
   end
 end
 
-Mongoid::Document.load_schema_versions_from_yaml(Rails.root.join("db", "schema_versions_centralized.yml"))
+begin
+  Mongoid::Document.load_schema_versions_from_yaml(Rails.root.join("db", "schema_versions_centralized.yml"))
+rescue => e
+  puts("An error occurred while initializing Mongoid::Document: #{e.message}")
+end
 ```
 
 ### Update Schema Versions
