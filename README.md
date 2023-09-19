@@ -144,13 +144,49 @@ Example:
 rake db:mongoid:validate_schema_versions
 ```
 
+## Model Schema Version Validator and Diff Tool
+<img width="604" alt="image" src="https://github.com/offerzen/schema_versioning_mongoid/assets/3964065/cd09fd8e-eecc-49db-9b77-4341934c9d04">
+### Overview
+The schema version validator and diff tool is a utility that allows developers to compare the current version of a MongoDB model schema with its historical versions. This can be useful for understanding changes, migrations, or potential compatibility issues in the system.
+
+### Installation
+This tool is bundled as a Rake task within your Rails application. Make sure you have updated to the latest version of the application that includes this tool.
+
+### Requirements
+- Ruby on Rails environment
+- MongoDB
+- Access to `db/schema_versions_centralized.yml` and `db/schema_versions.yml` files.
+
+### Usage
+Run the Rake task using the following command to validate schema versions and display differences:
+
+```bash
+rake db:mongoid:validate_schema_versions_with_diff MODEL=YourModelName
+```
+Replace `YourModelName` with the model name you'd like to validate. If you don't specify a model name, it defaults to 'Users'.
+
+#### Sample Output
+The output will provide you with a detailed comparison between the current and historical versions of the specified model, formatted similarly to GitHub diffs:
+
+```markdown
+Differences for model: YourModelName
+Comparing with Version 1 [timestamp uuid]:
+  + added_field_1
+  + added_field_2
+  - removed_field
+  ~ changed_field
+```
+- Lines with `+` indicate fields that have been added in the current version.
+- Lines with `-` indicate fields that have been removed in the current version.
+- Lines with `~` indicate fields whose types have changed in the current version.
+
 ## Usage
 - Initialize schema versioning by running `rake db:mongoid:init_schema_versioning`.
 - Set or update the schema version for individual models with `rake db:mongoid:set_schema_version[relative_path]`.
 - Check if a model's schema matches the schema version with `rake db:mongoid:check_schema_version[relative_path]`.
 - Update the schema versions for all models with `rake db:mongoid:update_schema_versions[reject_patterns]`.
 - Validate all models' schemas with `rake db:mongoid:validate_schema_versions`.
-
+- Visualize schemas version difference with `rake db:mongoid:diff`.
 
 ## Tests (RSpec)
 
