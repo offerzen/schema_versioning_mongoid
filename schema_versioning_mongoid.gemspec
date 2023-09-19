@@ -39,6 +39,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "railties", "~> 6.0"
   spec.add_dependency "rails", "~> 6.0"
   spec.add_dependency "mongoid", "~> 7.0"
+  spec.add_dependency 'pastel'
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html

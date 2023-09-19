@@ -1,6 +1,7 @@
 require 'securerandom'
 require 'json'
 require 'yaml'
+require 'rake'
 require_relative '../schema_versioning_mongoid/utilities'
 require_relative '../schema_versioning_mongoid/strategies'
 
@@ -126,6 +127,87 @@ namespace :"db:mongoid" do
         display_message(".", :success)
       end
     end
+  end
+
+  desc "Show schema versions differences for MODEL='Namespace::ModelName'"
+  task :diff => :environment do
+    def load_versions(file_path)
+      YAML.load_stream(File.read(file_path))
+    end
+
+    def find_model_versions(model_name, versions)
+      versions.select { |v| v[:model_name] == model_name }
+    end
+
+    def compare_versions(current_version, historical_versions)
+      diff_result = {}
+      current_fields = current_version[:fields]
+
+      historical_versions.each_with_index do |historical, index|
+        historical_fields = historical[:fields]
+        added = current_fields.keys - historical_fields.keys
+        removed = historical_fields.keys - current_fields.keys
+        changed = current_fields.keys.select { |k| current_fields[k] != historical_fields[k] }
+
+        if added.any? || removed.any? || changed.any?
+          diff_result["Version #{index + 1} [#{historical[:timestamp]} #{historical[:uuid]}]"] = {
+            added: added,
+            removed: removed,
+            changed: changed
+          }
+        end
+      end
+
+      diff_result
+    end
+
+    def display_pretty(differences)
+      require 'pastel'
+      pastel = Pastel.new
+
+      differences.each do |version, changes|
+        puts "Comparing with #{version}:"
+        
+        if changes[:added].any?
+          changes[:added].each do |field|
+            puts pastel.green("  + #{field}")
+          end
+        end
+
+        if changes[:removed].any?
+          changes[:removed].each do |field|
+            puts pastel.red("  - #{field}")
+          end
+        end
+
+        # if changes[:changed].any?
+        #   changes[:changed].each do |field|
+        #     puts pastel.yellow("  ~ #{field}")
+        #   end
+        # end
+      end
+    end
+
+    def execute_comparison(model_name)
+      centralized_versions = load_versions('db/schema_versions_centralized.yml')
+      historical_versions = load_versions('db/schema_versions.yml')
+
+      historical_versions = find_model_versions(model_name, historical_versions)
+      current_version = centralized_versions[0][model_name]
+      current_version = historical_versions.select{|v| v[:uuid] == current_version}.first
+
+      differences = compare_versions(current_version, historical_versions)
+
+      if differences.empty?
+        puts "No differences found."
+      else
+        puts "Differences for model: #{model_name}"
+        display_pretty(differences)
+      end
+    end
+
+    model_name = ENV['MODEL'] || 'AcceptableLocation'
+    execute_comparison(model_name)
   end
 
   # desc "Cleanup old schema versions that are no longer needed"
