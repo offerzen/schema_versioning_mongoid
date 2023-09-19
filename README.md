@@ -82,38 +82,75 @@ Mongoid::Document.load_schema_versions_from_yaml(Rails.root.join("db", "schema_v
 ### Update Schema Versions
 run the rake tasks below, for example: `rake schema_version:run_all reject_patterns='concerns,history_tracker'`
 
+
+
+
 ## Rake Tasks
-
-This gem provides several Rake tasks to help manage schema versions in your application. Here's a list of the available tasks and their descriptions:
-
-### `rake schema_version:run_all`
-
-This task will go through all your Mongoid models and either update or insert the `SCHEMA_VERSION` constant. You can pass an array of patterns to skip certain folders or file names.
-
-Usage:
-
-```bash
-rake "schema_version:run_all['concerns,history_tracker']"
-rake "schema_version:check[models_subdirectory/model.rb]"
-rake "schema_version:set[models_subdirectory/model.rb]"
-```
-
 This task checks if the schema versions in your Mongoid models match the ones in the centralized YAML file. This is particularly useful in CI/CD pipelines to ensure that your schemas are up-to-date.
 
-Usage:
-
-```bash
-rake schema_version:check
-rake schema_version:init_centralized_file
-```
-
 If you're using the centralized approach for schema versioning, this task will initialize a YAML file to store all the schema versions.
+### Initialization
+`rake db:mongoid:init_schema_versioning`
+This task initializes an empty schema_versions.yml file. This file will hold the schema versions for each Mongoid model in your application.
 
-Usage:
+Run the task as follows:
 
-```bash
-rake schema_version:init_centralized_file
+```sh
+rake db:mongoid:init_schema_versioning
 ```
+
+### Check Schema Version
+`rake db:mongoid:check_schema_version[relative_path]`
+This task checks if the schema of a specified Mongoid model matches the schema listed in schema_versions.yml.
+
+`relative_path`: The relative path to the model's Ruby file, starting from the models directory.
+
+Example:
+
+```sh
+rake db:mongoid:check_schema_version[user.rb]
+```
+
+### Set Schema Version
+`rake db:mongoid:set_schema_version[relative_path]`
+Sets or updates the SCHEMA_VERSION constant for a specified Mongoid model.
+
+`relative_path`: The relative path to the model's Ruby file, starting from the app/models/ directory.
+Example:
+
+```sh
+rake db:mongoid:set_schema_version[user.rb]
+```
+
+### Update All Schema Versions
+`rake db:mongoid:update_schema_versions[reject_patterns]`
+This task will run the check_schema_version and set_schema_version tasks for all Mongoid models in your application, excluding models that match any of the patterns specified.
+
+reject_patterns: Comma-separated string of patterns to reject. These should be substrings that might appear in the file path of models you wish to exclude.
+
+Example:
+
+```sh
+rake db:mongoid:update_schema_versions reject_patterns='concerns,history_tracker,api_token'
+```
+
+### Validate All Schema Versions
+`rake db:mongoid:validate_schema_versions`
+This task will validate the schema of all Mongoid models against schema_versions.yml without modifying them.
+
+Example:
+
+```sh
+rake db:mongoid:validate_schema_versions
+```
+
+## Usage
+- Initialize schema versioning by running `rake db:mongoid:init_schema_versioning`.
+- Set or update the schema version for individual models with `rake db:mongoid:set_schema_version[relative_path]`.
+- Check if a model's schema matches the schema version with `rake db:mongoid:check_schema_version[relative_path]`.
+- Update the schema versions for all models with `rake db:mongoid:update_schema_versions[reject_patterns]`.
+- Validate all models' schemas with `rake db:mongoid:validate_schema_versions`.
+
 
 ## Tests (RSpec)
 
